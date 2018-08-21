@@ -468,7 +468,6 @@ int main(int argc, char *argv[]) {
   if(globalParams) delete globalParams;
 
   if(htmlFileName) delete htmlFileName;
-  HtmlFont::clear();
 
   return exit_status;
 }

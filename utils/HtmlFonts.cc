@@ -43,37 +43,38 @@
 #include <stdio.h>
 #include <cmath>
 
- struct Fonts{
-    const char *Fontname;
-    const char *name;
-  };
+namespace
+{
 
-const int font_num=13;
+const char* const defaultFamilyName = "Times";
 
-static Fonts fonts[font_num+1]={  
-     {"Courier",               "Courier" },
-     {"Courier-Bold",           "Courier"},
-     {"Courier-BoldOblique",    "Courier"},
-     {"Courier-Oblique",        "Courier"},
-     {"Helvetica",              "Helvetica"},
-     {"Helvetica-Bold",         "Helvetica"},
-     {"Helvetica-BoldOblique",  "Helvetica"},
-     {"Helvetica-Oblique",      "Helvetica"},
-     {"Symbol",                 "Symbol"   },
-     {"Times-Bold",             "Times"    },
-     {"Times-BoldItalic",       "Times"    },
-     {"Times-Italic",           "Times"    },
-     {"Times-Roman",            "Times"    },
-     {" "          ,            "Times"    },
+const char* const styleSuffixes[] = {
+  "-Regular",
+  "-Bold",
+  "-BoldOblique",
+  "-BoldItalic",
+  "-Oblique",
+  "-Italic",
+  "-Roman",
 };
+
+void removeStyleSuffix(std::string& familyName) {
+  for (const char* const styleSuffix : styleSuffixes) {
+    auto pos = familyName.rfind(styleSuffix);
+    if (pos != std::string::npos) {
+      familyName.resize(pos);
+      return;
+    }
+  }
+}
+
+}
 
 #define xoutRound(x) ((int)(x + 0.5))
 extern GBool xml;
 extern GBool svg;
 extern GBool fontFullName;
 extern double fontsizemul;
-
-GooString* HtmlFont::DefaultFont=new GooString("Times"); // Arial,Helvetica,sans-serif
 
 HtmlFontColor::HtmlFontColor(GfxRGB rgb){
   r=static_cast<int>(rgb.r/65535.0*255.0);
@@ -113,23 +114,8 @@ GooString *HtmlFontColor::toString() const{
 } 
 
 HtmlFont::HtmlFont(GfxFont *font, int _size, GfxRGB rgb){
-  //if (col) color=HtmlFontColor(col); 
-  //else color=HtmlFontColor();
   color=HtmlFontColor(rgb);
-  const GooString* ftname=font->getName();
-  if (!ftname) ftname = getDefaultFont();
 
-  GooString *fontname = nullptr;
-
-  if( ftname ){
-    fontname = new GooString(ftname);
-    FontName=new GooString(ftname);
-  }
-  else {
-    fontname = nullptr;
-    FontName = nullptr;
-  }
-  
   lineSize = -1;
 
   size=(_size-1);
@@ -140,27 +126,28 @@ HtmlFont::HtmlFont(GfxFont *font, int _size, GfxRGB rgb){
   if (font->isBold() || font->getWeight() >= GfxFont::W700) bold=gTrue;
   if (font->isItalic()) italic=gTrue;
 
-  if (fontname){
-    if (!bold && strstr(fontname->lowerCase()->getCString(),"bold")) {
+  if (const GooString *fontname = font->getName()){
+    FontName = new GooString(fontname);
+
+    GooString fontnameLower(fontname);
+    fontnameLower.lowerCase();
+
+    if (!bold && strstr(fontnameLower.getCString(),"bold")) {
 		bold=gTrue;
     }
 
     if (!italic &&
-	(strstr(fontname->lowerCase()->getCString(),"italic")||
-	 strstr(fontname->lowerCase()->getCString(),"oblique"))) {
+	(strstr(fontnameLower.getCString(),"italic")||
+	 strstr(fontnameLower.getCString(),"oblique"))) {
 		italic=gTrue;
     }
 
-    int i=0;
-    while (strcmp(ftname->getCString(),fonts[i].Fontname)&&(i<font_num)) 
-	{
-		i++;
-	}
-    pos=i;
-    delete fontname;
-  } else
-    pos = font_num; 
-  if (!DefaultFont) DefaultFont=new GooString(fonts[font_num].name);
+    familyName = fontname->getCString();
+    removeStyleSuffix(familyName);
+  } else {
+    FontName = new GooString(defaultFamilyName);
+    familyName = defaultFamilyName;
+  }
 
   rotSkewMat[0] = rotSkewMat[1] = rotSkewMat[2] = rotSkewMat[3] = 0;
 }
@@ -170,16 +157,16 @@ HtmlFont::HtmlFont(const HtmlFont& x){
    lineSize=x.lineSize;
    italic=x.italic;
    bold=x.bold;
-   pos=x.pos;
+   familyName=x.familyName;
    color=x.color;
-   FontName = (x.FontName) ? new GooString(x.FontName) : nullptr;
+   FontName=new GooString(x.FontName);
    rotOrSkewed = x.rotOrSkewed;
    memcpy(rotSkewMat, x.rotSkewMat, sizeof(rotSkewMat));
  }
 
 
 HtmlFont::~HtmlFont(){
-  if (FontName) delete FontName;
+  delete FontName;
 }
 
 HtmlFont& HtmlFont::operator=(const HtmlFont& x){
@@ -188,19 +175,12 @@ HtmlFont& HtmlFont::operator=(const HtmlFont& x){
    lineSize=x.lineSize;
    italic=x.italic;
    bold=x.bold;
-   pos=x.pos;
+   familyName=x.familyName;
    color=x.color;
-   if (FontName) delete FontName;
-   FontName = (x.FontName) ? new GooString(x.FontName) : nullptr;
+   delete FontName;
+   FontName=new GooString(x.FontName);
    return *this;
 }
-
-void HtmlFont::clear(){
-  if(DefaultFont) delete DefaultFont;
-  DefaultFont = nullptr;
-}
-
-
 
 /*
   This function is used to compare font uniquely for insertion into
@@ -209,7 +189,7 @@ void HtmlFont::clear(){
 GBool HtmlFont::isEqual(const HtmlFont& x) const{
   return (size==x.size) &&
 	  (lineSize==x.lineSize) &&
-	  (pos==x.pos) && (bold==x.bold) && (italic==x.italic) &&
+	  (FontName->cmp(x.FontName) == 0) && (bold==x.bold) && (italic==x.italic) &&
 	  (color.isEqual(x.getColor())) && isRotOrSkewed() == x.isRotOrSkewed() &&
 	  (!isRotOrSkewed() || rot_matrices_equal(getRotMat(), x.getRotMat()));
 }
@@ -220,29 +200,16 @@ GBool HtmlFont::isEqual(const HtmlFont& x) const{
 */
 GBool HtmlFont::isEqualIgnoreBold(const HtmlFont& x) const{
   return ((size==x.size) &&
-	  (!strcmp(fonts[pos].name, fonts[x.pos].name)) &&
+	  (familyName == x.familyName) &&
 	  (color.isEqual(x.getColor())));
 }
 
 GooString* HtmlFont::getFontName(){
-   if (pos!=font_num) return new GooString(fonts[pos].name);
-    else return new GooString(DefaultFont);
+  return new GooString(familyName);
 }
 
 GooString* HtmlFont::getFullName(){
-  if (FontName)
-    return new GooString(FontName);
-  else return new GooString(DefaultFont);
-} 
-
-void HtmlFont::setDefaultFont(GooString* defaultFont){
-  if (DefaultFont) delete DefaultFont;
-  DefaultFont=new GooString(defaultFont);
-}
-
-
-GooString* HtmlFont::getDefaultFont(){
-  return DefaultFont;
+  return new GooString(FontName);
 }
 
 // this method if plain wrong todo
