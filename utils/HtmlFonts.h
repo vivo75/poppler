@@ -110,7 +110,8 @@ public:
   int AddFont(const HtmlFont& font);
   HtmlFont *Get(int i){
     return &(*accu)[i];
-  } 
+  }
+  GooString* getCSStyle (int i, GooString* content);
   GooString* CSStyle(int i, int j = 0);
   int size() const {return accu->size();}
   

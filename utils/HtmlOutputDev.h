@@ -119,6 +119,23 @@ private:
 
 
 //------------------------------------------------------------------------
+// HtmlPath
+//------------------------------------------------------------------------
+class HtmlPath
+{
+  public:
+    HtmlPath(char *_style, char *_path_data);
+     ~HtmlPath();
+
+    void append(char *_str);
+    GooString *toString();
+  private:
+    GooString *style;
+    GooString *path_data;
+};
+
+
+//------------------------------------------------------------------------
 // HtmlPage
 //------------------------------------------------------------------------
 
@@ -177,6 +194,9 @@ public:
   void clear();
   
   void conv();
+
+  void doPath(GfxState * state, HtmlPath * dest);
+
 private:
   HtmlFont* getFont(HtmlString *hStr) { return fonts->Get(hStr->fontpos); }
 
@@ -191,6 +211,8 @@ private:
   
   void setDocName(char* fname);
   void dumpAsXML(FILE* f,int page);
+  void dumpPathsAsSVG(FILE *);
+  void dumpAsSVG(FILE* f,int page);
   void dumpComplex(FILE* f, int page);
   int dumpComplexHeaders(FILE * const file, FILE *& pageFile, int page);
 
@@ -205,6 +227,7 @@ private:
   int pageWidth;
   int pageHeight;
   int firstPage;                // used to begin the numeration of pages
+  GooList *glPaths;
 
   friend class HtmlOutputDev;
 };
