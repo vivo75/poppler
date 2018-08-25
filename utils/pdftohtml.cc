@@ -79,9 +79,12 @@ GBool singleHtml=gFalse; // singleHtml
 GBool ignore=gFalse;
 static char extension[5]="png";
 static double scale=1.5;
+double resolution=72.0;
+double fontsizemul=1.0;
 GBool noframes=gFalse;
 GBool stout=gFalse;
 GBool xml=gFalse;
+GBool svg=gFalse;
 GBool noRoundedCoordinates = gFalse;
 static GBool errQuiet=gFalse;
 static GBool noDrm=gFalse;
@@ -130,8 +133,14 @@ static const ArgDesc argDesc[] = {
    "use standard output"},
   {"-zoom",   argFP,    &scale,         0,
    "zoom the pdf document (default 1.5)"},
+  {"-fontsizemul", argFP, &fontsizemul, 0,
+   "font size multiplier (default 1.0)"},
+  {"-r", argFP, &resolution, 0,
+   "resolution, in DPI (default is 72)"},
   {"-xml",    argFlag,    &xml,         0,
    "output for XML post-processing"},
+  {"-svg",    argFlag,    &svg,         0,
+   "output inkscape SVG"},
   {"-noroundcoord", argFlag, &noRoundedCoordinates, 0,
     "do not round coordinates (with XML output only)"},
   {"-hidden", argFlag,   &showHidden,   0,
@@ -275,7 +284,7 @@ int main(int argc, char *argv[]) {
   // construct text file name
   if (argc == 3) {
     GooString* tmp = new GooString(argv[2]);
-    if (!xml) {
+    if (!xml || !svg) {
       if (tmp->getLength() >= 5) {
         p = tmp->getCString() + tmp->getLength() - 5;
         if (!strcmp(p, ".html") || !strcmp(p, ".HTML")) {
@@ -283,10 +292,19 @@ int main(int argc, char *argv[]) {
         }
       }
     } else {
-      if (tmp->getLength() >= 4) {
-        p = tmp->getCString() + tmp->getLength() - 4;
-        if (!strcmp(p, ".xml") || !strcmp(p, ".XML")) {
-          htmlFileName = new GooString(tmp->getCString(), tmp->getLength() - 4);
+      if (svg) {
+        if (tmp->getLength() >= 4) {
+          p = tmp->getCString() + tmp->getLength() - 4;
+          if (!strcmp(p, ".svg") || !strcmp(p, ".SVG")) {
+            htmlFileName = new GooString(tmp->getCString(), tmp->getLength() - 4);
+          }
+        }
+      } else {
+        if (tmp->getLength() >= 4) {
+          p = tmp->getCString() + tmp->getLength() - 4;
+          if (!strcmp(p, ".xml") || !strcmp(p, ".XML")) {
+            htmlFileName = new GooString(tmp->getCString(), tmp->getLength() - 4);
+          }
         }
       }
     }
@@ -321,8 +339,12 @@ int main(int argc, char *argv[]) {
      singleHtml=gFalse;
    }
 
+   if (svg) {
+      xml = gTrue;
+   }
+
    if (xml)
-   { 
+   {
        complexMode = gTrue;
        singleHtml = gFalse;
        noframes = gTrue;
@@ -394,7 +416,7 @@ int main(int argc, char *argv[]) {
 
   if (htmlOut->isOk())
   {
-    doc->displayPages(htmlOut, firstPage, lastPage, 72 * scale, 72 * scale, 0,
+    doc->displayPages(htmlOut, firstPage, lastPage, resolution * scale, resolution * scale, 0,
 		      gTrue, gFalse, gFalse);
     htmlOut->dumpDocOutline(doc);
   }
@@ -414,7 +436,7 @@ int main(int argc, char *argv[]) {
 
     for (int pg = firstPage; pg <= lastPage; ++pg) {
       doc->displayPage(splashOut, pg,
-                       72 * scale, 72 * scale,
+                       resolution * scale, resolution * scale,
                        0, gTrue, gFalse, gFalse);
       SplashBitmap *bitmap = splashOut->getBitmap();
 
@@ -422,7 +444,7 @@ int main(int argc, char *argv[]) {
           htmlFileName->getCString(), pg, extension);
 
       bitmap->writeImgFile(format, imgFileName->getCString(),
-                           72 * scale, 72 * scale);
+                           resolution * scale, resolution * scale);
 
       delete imgFileName;
     }
