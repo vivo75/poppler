@@ -449,5 +449,24 @@ GooString* HtmlFontAccu::CSStyle(int i, int j){
    delete Size;
    return tmp;
 }
- 
 
+double HtmlFontAccu::lineSize(int i) {
+  std::vector<HtmlFont>::iterator g = accu->begin();
+  g += i;
+  HtmlFont font = *g;
+  return font.getSize();
+}
+
+GBool HtmlFontAccu::isBold(int i) {
+  std::vector<HtmlFont>::iterator g = accu->begin();
+  g += i;
+  HtmlFont font = *g;
+  return font.isBold();
+}
+
+GBool HtmlFontAccu::isItalic(int i) {
+  std::vector<HtmlFont>::iterator g = accu->begin();
+  g += i;
+  HtmlFont font = *g;
+  return font.isItalic();
+}
