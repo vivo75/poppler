@@ -338,7 +338,7 @@ public:
 		 GBool interpolate, int *maskColors, GBool inlineImg) override;
 
   //----- path painting
-  virtual void stroke( GfxState * state );
+  virtual void stroke( GfxState * state ) override;
 
   //new feature    
   virtual int DevType() {return 1234;}

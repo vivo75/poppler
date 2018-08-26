@@ -578,7 +578,8 @@ void HtmlPage::doPath(GfxState *state, HtmlPath *dest) {
       }
     }
     if (subpath->isClosed()) {
-      dest->append(" z");
+      sprintf(buf, " z");
+      dest->append(buf);
     }
   }
 }
@@ -913,11 +914,11 @@ void HtmlPage::dumpAsSVG(FILE* f,int page){
 
   dumpPathsAsSVG( f );
 
-  GooString *str, *str1, *style = NULL;
+  GooString *str, *str1 = nullptr;
+  GooString *style = nullptr;
   char *pch, *oldpch, *pbuf;
-  char str2[102400];
+  char str2[65000];
   const int len_br = strlen("[br]");
-  //double y;
 
   for ( HtmlString * tmp = yxStrings; tmp; tmp = tmp->yxNext ) {
     if ( tmp->htext ) {
@@ -947,7 +948,7 @@ void HtmlPage::dumpAsSVG(FILE* f,int page){
         }
         style->append( "\"\n" );
 
-        fprintf( f, style->getCString(  ) );
+        fprintf( f, "%s", style->getCString());
       }
 
       fprintf( f, "  x=\"%f\" y=\"%f\"\n", tmp->xMin , tmp->yMin);
@@ -1611,7 +1612,7 @@ void HtmlOutputDev::drawChar(GfxState *state, double x, double y,
 
 void HtmlOutputDev::stroke(GfxState *state) {
   pages->glPaths->append(new HtmlPath
-    ("fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.5;stroke-dasharray:none;stroke-opacity:1", ""));
+    ((char*)"fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.5;stroke-dasharray:none;stroke-opacity:1", (char*)""));
   int i = pages->glPaths->getLength();
   HtmlPath *t = (HtmlPath * ) pages->glPaths->get(i - 1 );
   pages->doPath(state, t);
