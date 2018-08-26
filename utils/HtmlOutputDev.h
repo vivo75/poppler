@@ -337,6 +337,9 @@ public:
 		 int width, int height, GfxImageColorMap *colorMap,
 		 GBool interpolate, int *maskColors, GBool inlineImg) override;
 
+  //----- path painting
+  virtual void stroke( GfxState * state );
+
   //new feature    
   virtual int DevType() {return 1234;}
 
