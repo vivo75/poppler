@@ -132,17 +132,8 @@ enum ObjType {
 // Object
 //------------------------------------------------------------------------
 
-#ifdef DEBUG_MEM
-#define initObj(t) free(); zeroUnion(); ++numAlloc[type = t]
-#else
 #define initObj(t) free(); zeroUnion(); type = t
-#endif
-
-#ifdef DEBUG_MEM
-#define constructObj(t) ++numAlloc[type = t]
-#else
 #define constructObj(t) type = t
-#endif
 
 class Object {
 public:
@@ -290,9 +281,6 @@ public:
   const char *getTypeName() const;
   void print(FILE *f = stdout) const;
 
-  // Memory testing.
-  static void memCheck(FILE *f);
-
 private:
   friend class Array; // Needs free and initNullAfterMalloc
   friend class Dict; // Needs free and initNullAfterMalloc
@@ -317,11 +305,6 @@ private:
     Stream *stream;		//   stream
     Ref ref;			//   indirect reference
   };
-
-#ifdef DEBUG_MEM
-  static int			// number of each type of object
-    numAlloc[numObjTypes];	//   currently allocated
-#endif
 };
 
 //------------------------------------------------------------------------
