@@ -317,8 +317,7 @@ HtmlPage::~HtmlPage() {
 
 void HtmlPage::updateFont(GfxState *state) {
   GfxFont *font;
-  double *fm;
-  char *name;
+  const char *name;
   int code;
   double w;
   
@@ -344,7 +343,7 @@ void HtmlPage::updateFont(GfxState *state) {
 	fontSize *= w / 0.6;
       }
     }
-    fm = font->getFontMatrix();
+    const double *fm = font->getFontMatrix();
     if (fm[0] != 0) {
       fontSize *= fabs(fm[3] / fm[0]);
     }
