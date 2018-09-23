@@ -2009,9 +2009,6 @@ void HtmlOutputDev::dumpMetaVars(FILE *file)
 
 GBool HtmlOutputDev::dumpDocOutline(PDFDoc* doc)
 { 
-#ifdef DISABLE_OUTLINE
-	return gFalse;
-#else
 	FILE * output = nullptr;
 	GBool bClose = gFalse;
 
@@ -2077,14 +2074,10 @@ GBool HtmlOutputDev::dumpDocOutline(PDFDoc* doc)
 		newXmlOutlineLevel(output, outlines);
 
 	return gTrue;
-#endif
 }
 
 GBool HtmlOutputDev::newHtmlOutlineLevel(FILE *output, const GooList *outlines, int level)
 {
-#ifdef DISABLE_OUTLINE
-	return gFalse;
-#else
 	GBool atLeastOne = gFalse;
 
 	if (level == 1)
@@ -2149,12 +2142,10 @@ GBool HtmlOutputDev::newHtmlOutlineLevel(FILE *output, const GooList *outlines, 
 	fputs("</ul>\n",output);
 
 	return atLeastOne;
-#endif
 }
 
 void HtmlOutputDev::newXmlOutlineLevel(FILE *output, const GooList *outlines)
 {
-#ifndef DISABLE_OUTLINE
     fputs("<outline>\n", output);
 
     for (int i = 0; i < outlines->getLength(); i++)
@@ -2183,10 +2174,8 @@ void HtmlOutputDev::newXmlOutlineLevel(FILE *output, const GooList *outlines)
     }    
 
     fputs("</outline>\n", output);
-#endif
 }
 
-#ifndef DISABLE_OUTLINE
 int HtmlOutputDev::getOutlinePageNum(OutlineItem *item)
 {
     const LinkAction *action   = item->getAction();
@@ -2220,4 +2209,3 @@ int HtmlOutputDev::getOutlinePageNum(OutlineItem *item)
     delete linkdest;
     return pagenum;
 }
-#endif
