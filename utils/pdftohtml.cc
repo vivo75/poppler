@@ -202,7 +202,6 @@ int main(int argc, char *argv[]) {
 #endif
   GBool doOutline;
   GBool ok;
-  char *p;
   GooString *ownerPW, *userPW;
   Object info;
   int exit_status = EXIT_FAILURE;
@@ -287,7 +286,7 @@ int main(int argc, char *argv[]) {
     GooString* tmp = new GooString(argv[2]);
     if (!xml || !svg) {
       if (tmp->getLength() >= 5) {
-        p = tmp->getCString() + tmp->getLength() - 5;
+        const char *p = tmp->getCString() + tmp->getLength() - 5;
         if (!strcmp(p, ".html") || !strcmp(p, ".HTML")) {
           htmlFileName = new GooString(tmp->getCString(), tmp->getLength() - 5);
         }
@@ -302,7 +301,7 @@ int main(int argc, char *argv[]) {
         }
       } else {
         if (tmp->getLength() >= 4) {
-          p = tmp->getCString() + tmp->getLength() - 4;
+          const char *p = tmp->getCString() + tmp->getLength() - 4;
           if (!strcmp(p, ".xml") || !strcmp(p, ".XML")) {
             htmlFileName = new GooString(tmp->getCString(), tmp->getLength() - 4);
           }
@@ -317,7 +316,7 @@ int main(int argc, char *argv[]) {
       error(errCommandLine, -1, "You have to provide an output filename when reading form stdin.");
       goto error;
   } else {
-    p = fileName->getCString() + fileName->getLength() - 4;
+    const char *p = fileName->getCString() + fileName->getLength() - 4;
     if (!strcmp(p, ".pdf") || !strcmp(p, ".PDF"))
       htmlFileName = new GooString(fileName->getCString(),
 				 fileName->getLength() - 4);
