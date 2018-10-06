@@ -227,7 +227,7 @@ GooString* HtmlFont::HtmlFilter(const Unicode* u, int uLen) {
   for (int i = 0; i < uLen; ++i) {
     // skip control characters.  W3C disallows them and they cause a warning
     // with PHP.
-    if (u[i] <= 31)
+    if (u[i] <= 31 && u[i] != '\t')
       continue;
 
     switch (u[i])
@@ -236,7 +236,7 @@ GooString* HtmlFont::HtmlFilter(const Unicode* u, int uLen) {
 	case '&': tmp->append("&amp;");  break;
 	case '<': tmp->append("&lt;");  break;
 	case '>': tmp->append("&gt;");  break;
-	case ' ': tmp->append( !xml && ( i+1 >= uLen || !tmp->getLength() || tmp->getChar( tmp->getLength()-1 ) == ' ' ) ? "&#160;" : " " );
+	case ' ': case '\t': tmp->append( !xml && ( i+1 >= uLen || !tmp->getLength() || tmp->getChar( tmp->getLength()-1 ) == ' ' ) ? "&#160;" : " " );
 	          break;
 	default:  
 	  {
