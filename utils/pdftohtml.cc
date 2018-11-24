@@ -336,7 +336,7 @@ int main(int argc, char *argv[]) {
    if (scale>3.0) scale=3.0;
    if (scale<0.5) scale=0.5;
    
-   if (complexMode || singleHtml) {
+   if (complexMode) {
      //noframes=false;
      stout=false;
    } 
@@ -344,7 +344,6 @@ int main(int argc, char *argv[]) {
    if (stout) {
      noframes=true;
      complexMode=false;
-     singleHtml=false;
    }
 
    if (svg) {
