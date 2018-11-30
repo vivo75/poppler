@@ -1967,7 +1967,7 @@ void HtmlOutputDev::dumpMetaVars(FILE *file)
 {
   GooString *var;
 
-  for(int i = 0; i < glMetaVars->getLength(); i++)
+  for(std::size_t i = 0; i < glMetaVars->size(); i++)
   {
      HtmlMetaVar *t = (HtmlMetaVar*)glMetaVars->get(i); 
      var = t->toString(); 
@@ -2056,7 +2056,7 @@ bool HtmlOutputDev::newHtmlOutlineLevel(FILE *output, const GooList *outlines, i
 	}
 	fputs("<ul>\n",output);
 
-	for (int i = 0; i < outlines->getLength(); i++)
+	for (std::size_t i = 0; i < outlines->size(); i++)
 	{
 		OutlineItem *item = (OutlineItem*)outlines->get(i);
 		GooString *titleStr = HtmlFont::HtmlFilter(item->getTitle(),
@@ -2117,7 +2117,7 @@ void HtmlOutputDev::newXmlOutlineLevel(FILE *output, const GooList *outlines)
 {
     fputs("<outline>\n", output);
 
-    for (int i = 0; i < outlines->getLength(); i++)
+    for (std::size_t i = 0; i < outlines->size(); i++)
     {
         OutlineItem *item     = (OutlineItem*)outlines->get(i);
         GooString   *titleStr = HtmlFont::HtmlFilter(item->getTitle(),
