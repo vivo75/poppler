@@ -287,7 +287,7 @@ HtmlPage::HtmlPage(bool rawOrder) {
   yxCur1 = yxCur2 = nullptr;
   fonts=new HtmlFontAccu();
   links=new HtmlLinks();
-  imgList=new GooList();
+  imgList=new GooList<HtmlImage*>();
   pageWidth=0;
   pageHeight=0;
   fontsPageMarker = 0;
@@ -301,7 +301,7 @@ HtmlPage::~HtmlPage() {
   delete DocName;
   delete fonts;
   delete links;
-  deleteGooList<HtmlImage>(imgList);
+  deleteGooList<HtmlImage*>(imgList);
   deleteGooList(glPaths, HtmlPath);
 }
 
@@ -1323,7 +1323,7 @@ HtmlOutputDev::HtmlOutputDev(Catalog *catalogA, const char *fileName, const char
   needClose = false;
   pages = new HtmlPage(rawOrder);
   
-  glMetaVars = new GooList();
+  glMetaVars = new GooList<HtmlMetaVar*>();
   glMetaVars->push_back(new HtmlMetaVar("generator", "pdftohtml 0.36"));
   if( author ) glMetaVars->push_back(new HtmlMetaVar("author", author));
   if( keywords ) glMetaVars->push_back(new HtmlMetaVar("keywords", keywords));
@@ -1481,7 +1481,7 @@ HtmlOutputDev::~HtmlOutputDev() {
     delete Docname;
     delete docTitle;
 
-    deleteGooList<HtmlMetaVar>(glMetaVars);
+    deleteGooList<HtmlMetaVar*>(glMetaVars);
 
     if (fContentsFrame){
       fputs("</body>\n</html>\n",fContentsFrame);  
@@ -1988,7 +1988,7 @@ bool HtmlOutputDev::dumpDocOutline(PDFDoc* doc)
 	if (!outline)
 		return false;
 
-	const GooList *outlines = outline->getItems();
+	const GooList<OutlineItem*> *outlines = outline->getItems();
 	if (!outlines)
 		return false;
   
@@ -2045,7 +2045,7 @@ bool HtmlOutputDev::dumpDocOutline(PDFDoc* doc)
 	return true;
 }
 
-bool HtmlOutputDev::newHtmlOutlineLevel(FILE *output, const GooList *outlines, int level)
+bool HtmlOutputDev::newHtmlOutlineLevel(FILE *output, const GooList<OutlineItem*> *outlines, int level)
 {
 	bool atLeastOne = false;
 
@@ -2113,7 +2113,7 @@ bool HtmlOutputDev::newHtmlOutlineLevel(FILE *output, const GooList *outlines, i
 	return atLeastOne;
 }
 
-void HtmlOutputDev::newXmlOutlineLevel(FILE *output, const GooList *outlines)
+void HtmlOutputDev::newXmlOutlineLevel(FILE *output, const GooList<OutlineItem*> *outlines)
 {
     fputs("<outline>\n", output);
 
