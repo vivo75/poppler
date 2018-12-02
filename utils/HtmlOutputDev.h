@@ -35,7 +35,6 @@
 #define HTMLOUTPUTDEV_H
 
 #include <stdio.h>
-#include "goo/GooList.h"
 #include "goo/gbasename.h"
 #include "GfxFont.h"
 #include "OutputDev.h"
@@ -209,7 +208,7 @@ private:
   int fontsPageMarker; 
   HtmlFontAccu *fonts;
   HtmlLinks *links; 
-  GooList<HtmlImage*> *imgList;
+  std::vector<HtmlImage*> *imgList;
   
   GooString *DocName;
   int pageWidth;
@@ -348,8 +347,8 @@ private:
   GooString* getLinkDest(AnnotLink *link);
   void dumpMetaVars(FILE *);
   void doFrame(int firstPage);
-  bool newHtmlOutlineLevel(FILE *output, const GooList<OutlineItem*> *outlines, int level = 1);
-  void newXmlOutlineLevel(FILE *output, const GooList<OutlineItem*> *outlines);
+  bool newHtmlOutlineLevel(FILE *output, const std::vector<OutlineItem*> *outlines, int level = 1);
+  void newXmlOutlineLevel(FILE *output, const std::vector<OutlineItem*> *outlines);
   int getOutlinePageNum(OutlineItem *item);
   void drawJpegImage(GfxState *state, Stream *str);
   void drawPngImage(GfxState *state, Stream *str, int width, int height,
@@ -371,7 +370,7 @@ private:
   int maxPageHeight;
   GooString *Docname;
   GooString *docTitle;
-  GooList<HtmlMetaVar*> *glMetaVars;
+  std::vector<HtmlMetaVar*> *glMetaVars;
   Catalog *catalog;
   Page *docPage;
   std::vector<std::string> backgroundImages;

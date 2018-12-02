@@ -59,7 +59,6 @@
 #include <iostream>
 #include "goo/GooString.h"
 #include "goo/gbasename.h"
-#include "goo/GooList.h"
 #include "goo/gbase64.h"
 #include "goo/gbasename.h"
 #include "UnicodeMap.h"
@@ -287,7 +286,7 @@ HtmlPage::HtmlPage(bool rawOrder) {
   yxCur1 = yxCur2 = nullptr;
   fonts=new HtmlFontAccu();
   links=new HtmlLinks();
-  imgList=new GooList<HtmlImage*>();
+  imgList=new std::vector<HtmlImage*>();
   pageWidth=0;
   pageHeight=0;
   fontsPageMarker = 0;
@@ -1329,7 +1328,7 @@ HtmlOutputDev::HtmlOutputDev(Catalog *catalogA, const char *fileName, const char
   needClose = false;
   pages = new HtmlPage(rawOrder);
   
-  glMetaVars = new GooList<HtmlMetaVar*>();
+  glMetaVars = new std::vector<HtmlMetaVar*>();
   glMetaVars->push_back(new HtmlMetaVar("generator", "pdftohtml 0.36"));
   if( author ) glMetaVars->push_back(new HtmlMetaVar("author", author));
   if( keywords ) glMetaVars->push_back(new HtmlMetaVar("keywords", keywords));
@@ -1997,7 +1996,7 @@ bool HtmlOutputDev::dumpDocOutline(PDFDoc* doc)
 	if (!outline)
 		return false;
 
-	const GooList<OutlineItem*> *outlines = outline->getItems();
+	const std::vector<OutlineItem*> *outlines = outline->getItems();
 	if (!outlines)
 		return false;
   
@@ -2054,7 +2053,7 @@ bool HtmlOutputDev::dumpDocOutline(PDFDoc* doc)
 	return true;
 }
 
-bool HtmlOutputDev::newHtmlOutlineLevel(FILE *output, const GooList<OutlineItem*> *outlines, int level)
+bool HtmlOutputDev::newHtmlOutlineLevel(FILE *output, const std::vector<OutlineItem*> *outlines, int level)
 {
 	bool atLeastOne = false;
 
@@ -2122,7 +2121,7 @@ bool HtmlOutputDev::newHtmlOutlineLevel(FILE *output, const GooList<OutlineItem*
 	return atLeastOne;
 }
 
-void HtmlOutputDev::newXmlOutlineLevel(FILE *output, const GooList<OutlineItem*> *outlines)
+void HtmlOutputDev::newXmlOutlineLevel(FILE *output, const std::vector<OutlineItem*> *outlines)
 {
     fputs("<outline>\n", output);
 
