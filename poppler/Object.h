@@ -270,7 +270,7 @@ public:
   void arrayAdd(Object &&elem);
   void arrayRemove(int i);
   Object arrayGet(int i, int recursion) const;
-  Object arrayGetNF(int i) const;
+  const Object &arrayGetNF(int i) const;
 
   // Dict accessors.
   int dictGetLength() const;
@@ -282,7 +282,7 @@ public:
   Object dictLookupNF(const char *key) const;
   const char *dictGetKey(int i) const;
   Object dictGetVal(int i) const;
-  Object dictGetValNF(int i) const;
+  const Object &dictGetValNF(int i) const;
 
   // Stream accessors.
   bool streamIs(const char *dictType) const;
@@ -337,7 +337,7 @@ inline void Object::arrayRemove(int i)
 inline Object Object::arrayGet(int i, int recursion = 0) const
   { OBJECT_TYPE_CHECK(objArray); return array->get(i, recursion); }
 
-inline Object Object::arrayGetNF(int i) const
+inline const Object &Object::arrayGetNF(int i) const
   { OBJECT_TYPE_CHECK(objArray); return array->getNF(i); }
 
 //------------------------------------------------------------------------
@@ -376,7 +376,7 @@ inline const char *Object::dictGetKey(int i) const
 inline Object Object::dictGetVal(int i) const
   { OBJECT_TYPE_CHECK(objDict); return dict->getVal(i); }
 
-inline Object Object::dictGetValNF(int i) const
+inline const Object &Object::dictGetValNF(int i) const
   { OBJECT_TYPE_CHECK(objDict); return dict->getValNF(i); }
 
 //------------------------------------------------------------------------
