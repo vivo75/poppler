@@ -17,7 +17,7 @@
 // All changes made under the Poppler project to this file are licensed
 // under GPL version 2 or later
 //
-// Copyright (C) 2005-2013, 2016-2018 Albert Astals Cid <aacid@kde.org>
+// Copyright (C) 2005-2013, 2016-2019 Albert Astals Cid <aacid@kde.org>
 // Copyright (C) 2008 Kjartan Maraas <kmaraas@gnome.org>
 // Copyright (C) 2008 Boris Toloknov <tlknv@yandex.ru>
 // Copyright (C) 2008 Haruyuki Kawabe <Haruyuki.Kawabe@unisys.co.jp>
@@ -1872,8 +1872,8 @@ GooString* HtmlOutputDev::getLinkDest(AnnotLink *link){
 	      
 	  if (dest){ 
 	      if (dest->isPageRef()){
-		  Ref pageref=dest->getPageRef();
-		  page=catalog->findPage(pageref.num,pageref.gen);
+		  const Ref pageref=dest->getPageRef();
+		  page=catalog->findPage(pageref);
 	      }
 	      else {
 		  page=dest->getPageNum();
@@ -2179,8 +2179,8 @@ int HtmlOutputDev::getOutlinePageNum(OutlineItem *item)
         return pagenum;
 
     if (linkdest->isPageRef()) {
-        Ref pageref = linkdest->getPageRef();
-        pagenum = catalog->findPage(pageref.num, pageref.gen);
+        const Ref pageref = linkdest->getPageRef();
+        pagenum = catalog->findPage(pageref);
     } else {
         pagenum = linkdest->getPageNum();
     }
