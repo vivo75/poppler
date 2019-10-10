@@ -275,6 +275,25 @@ int HtmlFontAccu::AddFont(const HtmlFont& font){
  return (accu->size()-1);
 }
 
+// get CSS font name for font #i
+GooString* HtmlFontAccu::getCSStyle(int i, GooString* content){
+  GooString *tmp;
+  GooString *iStr=GooString::fromInt(i);
+
+  if (xml || svg) {
+    tmp = new GooString("<span class=\"ft");
+    tmp->append(iStr);
+    tmp->append("\">");
+    tmp->append(content);
+    tmp->append("</span>");
+  } else {
+    tmp = new GooString("");
+    tmp->append(content);
+  }
+  delete iStr;
+  return tmp;
+}
+
 // get CSS font definition for font #i 
 GooString* HtmlFontAccu::CSStyle(int i, int j){
    GooString *tmp=new GooString();
