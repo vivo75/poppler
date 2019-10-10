@@ -84,9 +84,12 @@ bool dataUrls = false;
 bool ignore=false;
 static char extension[5]="png";
 static double scale=1.5;
+double resolution=72.0;
+double fontsizemul=1.0;
 bool noframes=false;
 bool stout=false;
 bool xml=false;
+bool svg=false;
 bool noRoundedCoordinates = false;
 static bool errQuiet=false;
 static bool noDrm=false;
@@ -139,8 +142,14 @@ static const ArgDesc argDesc[] = {
    "use standard output"},
   {"-zoom",   argFP,    &scale,         0,
    "zoom the pdf document (default 1.5)"},
+  {"-fontsizemul", argFP, &fontsizemul, 0,
+   "font size multiplier (default 1.0)"},
+  {"-r", argFP, &resolution, 0,
+   "resolution, in DPI (default is 72)"},
   {"-xml",    argFlag,    &xml,         0,
    "output for XML post-processing"},
+  {"-svg",    argFlag,    &svg,         0,
+   "output inkscape SVG"},
   {"-noroundcoord", argFlag, &noRoundedCoordinates, 0,
     "do not round coordinates (with XML output only)"},
   {"-hidden", argFlag,   &showHidden,   0,
@@ -283,7 +292,7 @@ int main(int argc, char *argv[]) {
   // construct text file name
   if (argc == 3) {
     GooString* tmp = new GooString(argv[2]);
-    if (!xml) {
+    if (!xml || !svg) {
       if (tmp->getLength() >= 5) {
         const char *p = tmp->c_str() + tmp->getLength() - 5;
         if (!strcmp(p, ".html") || !strcmp(p, ".HTML")) {
@@ -293,7 +302,7 @@ int main(int argc, char *argv[]) {
     } else {
       if (tmp->getLength() >= 4) {
         const char *p = tmp->c_str() + tmp->getLength() - 4;
-        if (!strcmp(p, ".xml") || !strcmp(p, ".XML")) {
+        if (!strcmp(p, ".svg") || !strcmp(p, ".SVG") || !strcmp(p, ".xml") || !strcmp(p, ".XML")) {
           htmlFileName = new GooString(tmp->c_str(), tmp->getLength() - 4);
         }
       }
@@ -328,6 +337,7 @@ int main(int argc, char *argv[]) {
      complexMode=false;
    }
 
+   if (svg) { xml = true; }
    if (xml)
    { 
        complexMode = true;
@@ -410,7 +420,7 @@ int main(int argc, char *argv[]) {
     for (int pg = firstPage; pg <= lastPage; ++pg) {
       InMemoryFile imf;
       doc->displayPage(splashOut, pg,
-                       72 * scale, 72 * scale,
+                       resolution * scale, resolution * scale,
                        0, true, false, false);
       SplashBitmap *bitmap = splashOut->getBitmap();
 
@@ -422,7 +432,7 @@ int main(int argc, char *argv[]) {
         delete imgFileName;
         continue;
       }
-      bitmap->writeImgFile(format, f1, 72 * scale, 72 * scale);
+      bitmap->writeImgFile(format, f1, resolution * scale, resolution * scale);
       fclose(f1);
       if (dataUrls) {
         htmlOut->addBackgroundImage(
@@ -449,7 +459,7 @@ int main(int argc, char *argv[]) {
 
   if (htmlOut->isOk())
   {
-    doc->displayPages(htmlOut, firstPage, lastPage, 72 * scale, 72 * scale, 0,
+    doc->displayPages(htmlOut, firstPage, lastPage, resolution * scale, resolution * scale, 0,
 		      true, false, false);
     htmlOut->dumpDocOutline(doc);
   }
