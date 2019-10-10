@@ -109,6 +109,9 @@ public:
   }
   GooString* getCSStyle (int i, GooString* content);
   GooString* CSStyle(int i, int j = 0);
+  double lineSize(int i);
+  bool isBold(int i);
+  bool isItalic(int i);
   int size() const {return accu->size();}
   
 };  
