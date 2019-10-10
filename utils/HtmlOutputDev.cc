@@ -112,6 +112,7 @@ extern bool printHtml;
 extern bool noframes;
 extern bool stout;
 extern bool xml;
+extern bool svg;
 extern bool noRoundedCoordinates;
 extern bool showHidden;
 extern bool noMerge;
@@ -285,6 +286,7 @@ HtmlPage::HtmlPage(bool rawOrderA) {
   fontsPageMarker = 0;
   DocName=nullptr;
   firstPage = -1;
+  glPaths = std::vector<HtmlPath*>();
 }
 
 HtmlPage::~HtmlPage() {
@@ -296,6 +298,10 @@ HtmlPage::~HtmlPage() {
     delete entry;
   }
   delete imgList;
+  for (auto entry : *glPaths) {
+    delete entry;
+  }
+  delete glPaths;
 }
 
 void HtmlPage::updateFont(GfxState *state) {
@@ -465,6 +471,7 @@ static const char *strrstr( const char *s, const char *ss )
 
 static void CloseTags( GooString *htext, bool &finish_a, bool &finish_italic, bool &finish_bold )
 {
+  if (svg) { return; }
   const char *last_italic = finish_italic && ( finish_bold   || finish_a    ) ? strrstr( htext->c_str(), "<i>" ) : nullptr;
   const char *last_bold   = finish_bold   && ( finish_italic || finish_a    ) ? strrstr( htext->c_str(), "<b>" ) : nullptr;
   const char *last_a      = finish_a      && ( finish_italic || finish_bold ) ? strrstr( htext->c_str(), "<a " ) : nullptr;
@@ -512,7 +519,7 @@ void HtmlPage::coalesce() {
   if( !str1 ) return;
 
   //----- discard duplicated text (fake boldface, drop shadows)
-  if( !complexMode )
+  if( !complexMode && !svg )
   {	/* if not in complex mode get rid of duplicate strings */
 	HtmlString *str3;
 	bool found;
@@ -552,14 +559,16 @@ void HtmlPage::coalesce() {
   str1 = yxStrings;
   
   hfont1 = getFont(str1);
-  if( hfont1->isBold() )
-    str1->htext->insert(0,"<b>",3);
-  if( hfont1->isItalic() )
-    str1->htext->insert(0,"<i>",3);
-  if( str1->getLink() != nullptr ) {
-    GooString *ls = str1->getLink()->getLinkStart();
-    str1->htext->insert(0, ls);
-    delete ls;
+  if (!svg) {
+    if( hfont1->isBold())
+      str1->htext->insert(0,"<b>",3);
+    if( hfont1->isItalic())
+      str1->htext->insert(0,"<i>",3);
+    if( str1->getLink() != nullptr ) {
+      GooString *ls = str1->getLink()->getLinkStart();
+      str1->htext->insert(0, ls);
+      delete ls;
+    }
   }
   curX = str1->xMin; curY = str1->yMin;
 
@@ -607,7 +616,8 @@ void HtmlPage::coalesce() {
        	 (vertSpace >= 0 && vertSpace < 0.5 * space && addLineBreak)
 	) &&
 	(!complexMode || (hfont1->isEqualIgnoreBold(*hfont2))) && // in complex mode fonts must be the same, in other modes fonts do not metter
-	str1->dir == str2->dir // text direction the same
+	str1->dir == str2->dir && // text direction the same
+	(!svg || hfont1->isEqual( *hfont2 ))
        ) 
     {
 //      printf("yes\n");
@@ -628,16 +638,19 @@ void HtmlPage::coalesce() {
 		  str1->text[str1->len] = 0x20;
 		  str1->htext->append(xml?" ":"&#160;");
 		  str1->xRight[str1->len] = str2->xMin;
+		  str1->xMax = str1->xMax + horSpace;
 		  ++str1->len;
       }
       if (addLineBreak) {
 	  str1->text[str1->len] = '\n';
-	  str1->htext->append("<br/>");
+	  if (!svg) {
+	      str1->htext->append("<br/>");
+	  }
 	  str1->xRight[str1->len] = str2->xMin;
 	  ++str1->len;
-	  str1->yMin = str2->yMin;
-	  str1->yMax = str2->yMax;
-	  str1->xMax = str2->xMax;
+	  str1->yMin = str1->yMin > str2->yMin ? str1->yMin : str2->yMin;
+	  str1->yMax = str1->yMax > str2->yMax ? str1->yMax : str2->yMax;
+	  str1->xMax = str1->xMax > str2->xMax ? str1->xMax : str2->xMax;
 	  int fontLineSize = hfont1->getLineSize();
 	  int curLineSize = (int)(vertSpace + space); 
 	  if( curLineSize != fontLineSize )
@@ -659,23 +672,25 @@ void HtmlPage::coalesce() {
       }
 
       /* fix <i>, <b> if str1 and str2 differ and handle switch of links */
-      HtmlLink *hlink1 = str1->getLink();
-      HtmlLink *hlink2 = str2->getLink();
-      bool switch_links = !hlink1 || !hlink2 || !hlink1->isEqualDest(*hlink2);
-      bool finish_a = switch_links && hlink1 != nullptr;
-      bool finish_italic = hfont1->isItalic() && ( !hfont2->isItalic() || finish_a );
-      bool finish_bold   = hfont1->isBold()   && ( !hfont2->isBold()   || finish_a || finish_italic );
-      CloseTags( str1->htext, finish_a, finish_italic, finish_bold );
-      if( switch_links && hlink2 != nullptr ) {
-        GooString *ls = hlink2->getLinkStart();
-        str1->htext->append(ls);
-        delete ls;
+      // TODO: 2018-08 fix SVG case
+      if (!svg) {
+        HtmlLink *hlink1 = str1->getLink();
+        HtmlLink *hlink2 = str2->getLink();
+        bool switch_links = !hlink1 || !hlink2 || !hlink1->isEqualDest(*hlink2);
+        bool finish_a = switch_links && hlink1 != nullptr;
+        bool finish_italic = hfont1->isItalic() && ( !hfont2->isItalic() || finish_a );
+        bool finish_bold   = hfont1->isBold()   && ( !hfont2->isBold()   || finish_a || finish_italic );
+        CloseTags( str1->htext, finish_a, finish_italic, finish_bold );
+        if( switch_links && hlink2 != nullptr ) {
+          GooString *ls = hlink2->getLinkStart();
+          str1->htext->append(ls);
+          delete ls;
+        }
+        if( ( !hfont1->isItalic() || finish_italic ) && hfont2->isItalic() )
+          str1->htext->append("<i>", 3);
+        if( ( !hfont1->isBold() || finish_bold ) && hfont2->isBold() )
+          str1->htext->append("<b>", 3);
       }
-      if( ( !hfont1->isItalic() || finish_italic ) && hfont2->isItalic() )
-	    str1->htext->append("<i>", 3);
-      if( ( !hfont1->isBold() || finish_bold ) && hfont2->isBold() )
-	    str1->htext->append("<b>", 3);
-
 
       str1->htext->append(str2->htext);
       // str1 now contains href for link of str2 (if it is defined)
@@ -696,18 +711,20 @@ void HtmlPage::coalesce() {
       bool finish_italic = hfont1->isItalic();
       CloseTags( str1->htext, finish_a, finish_italic, finish_bold );
      
-      str1->xMin = curX; str1->yMin = curY; 
+      str1->xMin = curX; str1->yMin = curY;
       str1 = str2;
       curX = str1->xMin; curY = str1->yMin;
       hfont1 = hfont2;
-      if( hfont1->isBold() )
-	str1->htext->insert(0,"<b>",3);
-      if( hfont1->isItalic() )
-	str1->htext->insert(0,"<i>",3);
-      if( str1->getLink() != nullptr ) {
-	GooString *ls = str1->getLink()->getLinkStart();
-	str1->htext->insert(0, ls);
-	delete ls;
+      if (!svg) {
+        if( hfont1->isBold() )
+          str1->htext->insert(0,"<b>",3);
+        if( hfont1->isItalic() )
+          str1->htext->insert(0,"<i>",3);
+        if( str1->getLink() != nullptr ) {
+          GooString *ls = str1->getLink()->getLinkStart();
+          str1->htext->insert(0, ls);
+          delete ls;
+        }
       }
     }
   }
@@ -730,7 +747,7 @@ void HtmlPage::coalesce() {
 
 }
 
-void HtmlPage::dumpAsXML(FILE* f,int page){  
+void HtmlPage::dumpAsXML(FILE* f,int page){
   fprintf(f, "<page number=\"%d\" position=\"absolute\"", page);
   fprintf(f," top=\"0\" left=\"0\" height=\"%d\" width=\"%d\">\n", pageHeight,pageWidth);
     
@@ -771,6 +788,109 @@ void HtmlPage::dumpAsXML(FILE* f,int page){
     }
   }
   fputs("</page>\n",f);
+}
+
+void HtmlPage::dumpPathsAsSVG(FILE * file) {
+  GooString *var;
+
+  for ( int i = 0; i < glPaths->size(); i++ ) {
+    HtmlPath *t = (*glPaths)[i];
+    var = t->toString(  );
+    fprintf( file, "%s\n", var->c_str(  ) );
+    delete var;
+  }
+}
+
+void HtmlPage::dumpAsSVG(FILE* f,int page){
+  if ( fonts->size() > fontsPageMarker ) {
+    fprintf( f, "<defs><style type=\"text/css\"><![CDATA[\n" );
+    for ( int i = fontsPageMarker; i < fonts->size(); i++ ) {
+        GooString *fontCSStyle = fonts->CSStyle(i);
+        fprintf( f, "\t%s\n", fontCSStyle->c_str() );
+        delete fontCSStyle;
+    }
+    fprintf( f, "]]></style></defs>\n" );
+  }
+  // <page>
+  fprintf( f, "<g inkscape:label=\"layer%d\" inkscape:groupmode=\"layer\" id=\"layer%d\"\n", page, page );
+  fprintf( f, "  pdftosvg:role=\"page\"\n");
+  fprintf( f, "  pdftosvg:page_height=\"%d\"\n", pageHeight);
+  fprintf( f, "  pdftosvg:page_width=\"%d\"\n", pageWidth);
+  fprintf( f, "  >\n");
+
+  dumpPathsAsSVG( f );
+
+  GooString *str, *str1, *style = NULL;
+  char *pch, *oldpch, *pbuf;
+  char str2[102400];
+  const int len_br = strlen("[br]");
+  //double y;
+
+  for ( HtmlString * tmp = yxStrings; tmp; tmp = tmp->yxNext ) {
+    if ( tmp->htext ) {
+      str = new GooString( tmp->htext );
+#if 0
+      // Draw a rect behind the text
+      fprintf( f, "<rect fill=\"#F0F0F0\" stroke=\"#E0E0E0\" stroke-width=\"1\"\n" );
+      fprintf( f, "  x=\"%f\"\n", tmp->xMin );
+      fprintf( f, "  y=\"%f\"\n", tmp->yMin - fonts->lineSize( tmp->fontpos ) );
+      fprintf( f, "  width=\"%f\"\n", tmp->xMax - tmp->xMin );
+      fprintf( f, "  height=\"%f\"\n", tmp->yMax - tmp->yMin );
+      fprintf( f, "/>\n" );
+#endif
+      fprintf( f, "<text\n" );
+      fprintf( f, "  xml:space=\"preserve\"\n" );
+      fprintf( f, "  class=\"id%d\"\n", tmp->fontpos );
+      // duplicate the CSS effort
+#if 0
+      // TODO: 2018-08 define isBold isItalic & co.
+      if ( fonts->isBold( tmp->fontpos ) || fonts->isItalic( tmp->fontpos ) ) {
+        style = new GooString( "  style=\"" );
+        if ( fonts->isBold( tmp->fontpos ) ) {
+          style->append( "font-weight: bold; " );
+        }
+
+        if ( fonts->isItalic( tmp->fontpos ) ) {
+          style->append( "font-style: italic; " );
+        }
+        style->append( "\"\n" );
+
+        fprintf( f, style->c_str(  ) );
+      }
+#endif
+      fprintf( f, "  x=\"%f\" y=\"%f\"\n", tmp->xMin , tmp->yMin);
+      fprintf( f, "  pdftosvg:p1=\"%f,%f\"\n", tmp->xMin, tmp->yMin);
+      fprintf( f, "  pdftosvg:p2=\"%f,%f\"\n", tmp->xMax, tmp->yMax);
+      // TODO: 2018-08 fprintf( f, "  pdftosvg:lineSize=\"%f\"\n", fonts->lineSize( tmp->fontpos ) );
+      fprintf( f, "  >");
+      fprintf( f, "<tspan sodipodi:role=\"line\" dx=\"0\" dy=\"0\"\n  >" );
+      if ( tmp->fontpos != -1 ) {
+          str1 = fonts->getCSStyle( tmp->fontpos, str );
+      }
+      //TODO:
+      //SECURITY: buffer is only 1024 bytes long
+      oldpch = pbuf = str1->c_str(  );
+      pch = strstr( pbuf, "[br]" );
+      while ( pch ) {
+        strncpy( str2, oldpch, pch - pbuf );
+        str2[pch - oldpch] = '\0';
+        fputs( str2, f );
+
+        //y += fonts->lineSize( tmp->fontpos );
+        fprintf( f, "</tspan>" );
+        fprintf( f, "<tspan sodipodi:role=\"line\" dx=\"0\" dy=\"0\"\n  >" );
+
+        pch += len_br;
+        oldpch = pch;
+        pch = strstr( pch, "[br]" );
+      }
+      fputs( oldpch, f );
+      delete str;
+      delete str1;
+      fputs( "</tspan></text>\n", f );
+    }
+  }
+  fputs( "</g>\n", f );
 }
 
 static void printCSS(FILE *f)
@@ -921,8 +1041,13 @@ void HtmlPage::dump(FILE *f, int pageNum, const std::vector<std::string>& backgr
 {
   if (complexMode || singleHtml)
   {
-    if (xml) dumpAsXML(f, pageNum);
-    if (!xml) dumpComplex(f, pageNum, backgroundImages);
+    if (svg) {
+      dumpAsSVG(f, pageNum);
+    } else if (xml) {
+      dumpAsXML(f, pageNum);
+    } else {
+      dumpComplex(f, pageNum);
+    }
   }
   else
   {
@@ -996,6 +1121,34 @@ void HtmlPage::setDocName(const char *fname){
 void HtmlPage::addImage(GooString *fname, GfxState *state) {
   HtmlImage *img = new HtmlImage(fname, state);
   imgList->push_back(img);
+}
+
+//------------------------------------------------------------------------
+// HtmlPath
+//------------------------------------------------------------------------
+
+HtmlPath::HtmlPath(char *_style, char *_path_data) {
+  style = new GooString(_style);
+  path_data = new GooString(_path_data);
+}
+
+HtmlPath::~HtmlPath() {
+  delete style;
+  delete path_data;
+}
+
+void HtmlPath::append(char *_str) {
+  path_data->append( _str );
+  return;
+}
+
+GooString * HtmlPath::toString() {
+  GooString *result = new GooString( "<path \n  style=\"" );
+  result->append( style );
+  result->append( "\"\n  d=\"" );
+  result->append( path_data );
+  result->append( "\" />" );
+  return result;
 }
 
 //------------------------------------------------------------------------
@@ -1176,8 +1329,48 @@ HtmlOutputDev::HtmlOutputDev(Catalog *catalogA, const char *fileName, const char
       delete right;
     }
 
-    GooString *htmlEncoding = mapEncodingToHtml(globalParams->getTextEncodingName()); 
-    if (xml) 
+    GooString *htmlEncoding = mapEncodingToHtml(globalParams->getTextEncodingName());
+    if (svg) {
+      fprintf(page, "<?xml version=\"1.0\" encoding=\"%s\"?>\n", htmlEncoding->c_str());
+      fputs( "<svg\n", page );
+      fputs( "   xmlns:dc=\"http://purl.org/dc/elements/1.1/\"\n", page );
+      fputs( "   xmlns:cc=\"http://web.resource.org/cc/\"\n", page );
+      fputs( "   xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"\n", page );
+      fputs( "   xmlns:svg=\"http://www.w3.org/2000/svg\"\n", page );
+      fputs( "   xmlns=\"http://www.w3.org/2000/svg\"\n", page );
+      fputs( "   xmlns:sodipodi=\"http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd\"\n", page );
+      fputs( "   xmlns:inkscape=\"http://www.inkscape.org/namespaces/inkscape\"\n", page );
+      fputs( "   xmlns:pdftosvg=\"http://www.pnpitalia.it/namespaces/pdftosvg\"\n", page );
+      fputs( "   version=\"1.0\"\n", page );
+      fputs( "   baseProfile=\"tiny\"\n", page );
+      fputs( "   id=\"svg2\"\n", page );
+      fputs( "   sodipodi:version=\"0.32\"\n", page );
+      fputs( "   inkscape:version=\"0.45.1\"\n", page );
+      fputs( "   inkscape:output_extension=\"org.inkscape.output.svg.inkscape\">\n", page );
+      fputs( "  <sodipodi:namedview\n", page );
+      fputs( "     inkscape:window-height=\"595.28\"\n", page );
+      fputs( "     inkscape:window-width=\"841.89\"\n", page );
+      fputs( "     inkscape:pageshadow=\"2\"\n", page );
+      fputs( "     inkscape:pageopacity=\"0.0\"\n", page );
+      fputs( "     guidetolerance=\"10.0\"\n", page );
+      fputs( "     gridtolerance=\"10.0\"\n", page );
+      fputs( "     objecttolerance=\"10.0\"\n", page );
+      fputs( "     borderopacity=\"1.0\"\n", page );
+      fputs( "     bordercolor=\"#666666\"\n", page );
+      fputs( "     pagecolor=\"#ffffff\"\n", page );
+      fputs( "     id=\"base\"\n", page );
+      fputs( "     width=\"595.27559pt\"\n", page );
+      fputs( "     height=\"841.88976pt\"\n", page );
+      fputs( "     units=\"pt\"\n", page );
+      fputs( "     inkscape:document-units=\"pt\"\n", page );
+      fputs( "     inkscape:zoom=\"1.0\"\n", page );
+      fputs( "     inkscape:cx=\"36.404012\"\n", page );
+      fputs( "     inkscape:cy=\"946.99606\"\n", page );
+      fputs( "     inkscape:window-x=\"0\"\n", page );
+      fputs( "     inkscape:window-y=\"0\"\n", page );
+      fputs( "     inkscape:current-layer=\"svg2\" />\n", page );
+      fputs( "<!-- pageSet Start -->\n", page );
+    } else if (xml)
     {
       fprintf(page, "<?xml version=\"1.0\" encoding=\"%s\"?>\n", htmlEncoding->c_str());
       fputs("<!DOCTYPE pdf2xml SYSTEM \"pdf2xml.dtd\">\n\n", page);
@@ -1213,7 +1406,11 @@ HtmlOutputDev::~HtmlOutputDev() {
       fclose(fContentsFrame);
     }
     if (page != nullptr) {
-      if (xml) {
+      if (svg) {
+        fputs( "<!-- pageSet End -->\n", page );
+        fputs( "</svg>\n", page );
+        fclose(page);
+      } else if (xml) {
         fputs("</pdf2xml>\n",page);  
         fclose(page);
       } else
@@ -1487,6 +1684,10 @@ void HtmlOutputDev::drawImageMask(GfxState *state, Object *ref, Stream *str,
 				  int width, int height, bool invert,
 				  bool interpolate, bool inlineImg) {
 
+  if (svg) {
+    // TODO: 2018-08 manage images in svg
+    return;
+  }
   if (ignore||(complexMode && !xml)) {
     OutputDev::drawImageMask(state, ref, str, width, height, invert, interpolate, inlineImg);
     return;
@@ -1509,6 +1710,10 @@ void HtmlOutputDev::drawImage(GfxState *state, Object *ref, Stream *str,
 			      int width, int height, GfxImageColorMap *colorMap,
 			      bool interpolate, const int *maskColors, bool inlineImg) {
 
+  if (svg) {
+    // TODO: 2018-08 manage images in svg
+    return;
+  }
   if (ignore||(complexMode && !xml)) {
     OutputDev::drawImage(state, ref, str, width, height, colorMap, interpolate,
 			 maskColors, inlineImg);
@@ -1531,7 +1736,6 @@ void HtmlOutputDev::drawImage(GfxState *state, Object *ref, Stream *str,
 #endif
   }
 }
-
 
 
 void HtmlOutputDev::doProcessLink(AnnotLink* link){
