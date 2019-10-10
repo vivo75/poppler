@@ -180,8 +180,15 @@ HtmlString::HtmlString(GfxState *state, double fontSize, HtmlFontAccu* _fonts) :
         //printf( "descent %.15g is too low, ascent=%.15g\n", descent, ascent );
         descent = -0.4;
     }
-    yMin = y - ascent * fontSize;
-    yMax = y - descent * fontSize;
+    // WARNING: I'd like to keep it as is for compatibility but upstream may want
+    // to unify svg and other
+    if (svg) {
+      yMin = y;
+      yMax = y - descent * fontSize + ascent * fontSize;
+    } else {
+      yMin = y - ascent * fontSize;
+      yMax = y - descent * fontSize;
+    }
     GfxRGB rgb;
     state->getFillRGB(&rgb);
     HtmlFont hfont=HtmlFont(font, static_cast<int>(fontSize-1), rgb);
@@ -286,7 +293,7 @@ HtmlPage::HtmlPage(bool rawOrderA) {
   fontsPageMarker = 0;
   DocName=nullptr;
   firstPage = -1;
-  glPaths = std::vector<HtmlPath*>();
+  glPaths = new std::vector<HtmlPath*>();
 }
 
 HtmlPage::~HtmlPage() {
@@ -490,6 +497,77 @@ static void CloseTags( GooString *htext, bool &finish_a, bool &finish_italic, bo
   if( finish_a )
     htext->append("</a>");
 }
+
+
+void HtmlPage::doPath(GfxState *state, HtmlPath *dest) {
+  GfxSubpath *subpath;
+  double x0, y0, x1, y1, x2, y2, x3, y3, x4, y4;
+  int n, m, i, j;
+  char buf[128];
+  GfxPath *path = state->getPath();
+
+  n = path->getNumSubpaths();
+
+  if (n == 1 && path->getSubpath(0)->getNumPoints() == 5) {
+    subpath = path->getSubpath(0);
+    x0 = subpath->getX(0);
+    y0 = subpath->getY(0);
+    x4 = subpath->getX(4);
+    y4 = subpath->getY(4);
+    if (x4 == x0 && y4 == y0) {
+      x1 = subpath->getX(1);
+      y1 = subpath->getY(1);
+      x2 = subpath->getX(2);
+      y2 = subpath->getY(2);
+      x3 = subpath->getX(3);
+      y3 = subpath->getY(3);
+
+      if (x0 == x1 && x2 == x3 && y0 == y3 && y1 == y2) {
+        sprintf(buf, " 1writePSFmt %f %f %f %f", x0 < x2 ? x0 : x2,
+                y0 < y1 ? y0 : y1, fabs(x2 - x0), fabs(y1 - y0));
+        dest->append(buf);
+
+        return;
+      } else if (x0 == x3 && x1 == x2 && y0 == y1 && y2 == y3) {
+        sprintf(buf, " rect %f,%f,%f,%f", x0 < x1 ? x0 : x1, y0 < y2 ? y0 : y2,
+                fabs(x1 - x0), fabs(y2 - y0));
+        dest->append(buf);
+        return;
+      }
+    }
+  }
+
+  for (i = 0; i < n; ++i) {
+    subpath = path->getSubpath(i);
+    m = subpath->getNumPoints();
+    // Move to
+    state->transform(subpath->getX(0), subpath->getY(0), &x1, &y1);
+    sprintf(buf, "M %f,%f ", x1, y1);
+    dest->append(buf);
+    j = 1;
+    while (j < m) {
+      if (subpath->getCurve(j)) {
+        // Curve
+        sprintf(buf, "C %f,%f %f,%f %f,%f", subpath->getX(j), subpath->getY(j),
+                subpath->getX(j + 1), subpath->getY(j + 1),
+                subpath->getX(j + 2), subpath->getY(j + 2));
+        dest->append(buf);
+        j += 3;
+      } else {
+        // Line
+        state->transform(subpath->getX(j), subpath->getY(j), &x1, &y1);
+        sprintf(buf, "L %f,%f ", x1, y1);
+        dest->append(buf);
+        ++j;
+      }
+    }
+    if (subpath->isClosed()) {
+      sprintf(buf, " z");
+      dest->append(buf);
+    }
+  }
+}
+
 
 // Strings are lines of text;
 // This function aims to combine strings into lines and paragraphs if !noMerge
@@ -793,7 +871,7 @@ void HtmlPage::dumpAsXML(FILE* f,int page){
 void HtmlPage::dumpPathsAsSVG(FILE * file) {
   GooString *var;
 
-  for ( int i = 0; i < glPaths->size(); i++ ) {
+  for ( long unsigned int i = 0; i < glPaths->size(); i++ ) {
     HtmlPath *t = (*glPaths)[i];
     var = t->toString(  );
     fprintf( file, "%s\n", var->c_str(  ) );
@@ -820,9 +898,9 @@ void HtmlPage::dumpAsSVG(FILE* f,int page){
 
   dumpPathsAsSVG( f );
 
-  GooString *str, *str1, *style = NULL;
-  char *pch, *oldpch, *pbuf;
-  char str2[102400];
+  GooString *str, *str1, *style = nullptr;
+  const char *pch, *oldpch, *pbuf;
+  char str2[65000];
   const int len_br = strlen("[br]");
   //double y;
 
@@ -833,7 +911,7 @@ void HtmlPage::dumpAsSVG(FILE* f,int page){
       // Draw a rect behind the text
       fprintf( f, "<rect fill=\"#F0F0F0\" stroke=\"#E0E0E0\" stroke-width=\"1\"\n" );
       fprintf( f, "  x=\"%f\"\n", tmp->xMin );
-      fprintf( f, "  y=\"%f\"\n", tmp->yMin - fonts->lineSize( tmp->fontpos ) );
+      fprintf( f, "  y=\"%f\"\n", tmp->yMin - fonts->size( tmp->fontpos ) );
       fprintf( f, "  width=\"%f\"\n", tmp->xMax - tmp->xMin );
       fprintf( f, "  height=\"%f\"\n", tmp->yMax - tmp->yMin );
       fprintf( f, "/>\n" );
@@ -841,9 +919,8 @@ void HtmlPage::dumpAsSVG(FILE* f,int page){
       fprintf( f, "<text\n" );
       fprintf( f, "  xml:space=\"preserve\"\n" );
       fprintf( f, "  class=\"id%d\"\n", tmp->fontpos );
-      // duplicate the CSS effort
-#if 0
-      // TODO: 2018-08 define isBold isItalic & co.
+      // duplicate the CSS effort for easy parsing
+
       if ( fonts->isBold( tmp->fontpos ) || fonts->isItalic( tmp->fontpos ) ) {
         style = new GooString( "  style=\"" );
         if ( fonts->isBold( tmp->fontpos ) ) {
@@ -855,13 +932,13 @@ void HtmlPage::dumpAsSVG(FILE* f,int page){
         }
         style->append( "\"\n" );
 
-        fprintf( f, style->c_str(  ) );
+        fprintf( f, "%s", style->c_str());
       }
-#endif
+
       fprintf( f, "  x=\"%f\" y=\"%f\"\n", tmp->xMin , tmp->yMin);
       fprintf( f, "  pdftosvg:p1=\"%f,%f\"\n", tmp->xMin, tmp->yMin);
       fprintf( f, "  pdftosvg:p2=\"%f,%f\"\n", tmp->xMax, tmp->yMax);
-      // TODO: 2018-08 fprintf( f, "  pdftosvg:lineSize=\"%f\"\n", fonts->lineSize( tmp->fontpos ) );
+      fprintf( f, "  pdftosvg:lineSize=\"%f\"\n", fonts->lineSize( tmp->fontpos ) );
       fprintf( f, "  >");
       fprintf( f, "<tspan sodipodi:role=\"line\" dx=\"0\" dy=\"0\"\n  >" );
       if ( tmp->fontpos != -1 ) {
@@ -876,7 +953,7 @@ void HtmlPage::dumpAsSVG(FILE* f,int page){
         str2[pch - oldpch] = '\0';
         fputs( str2, f );
 
-        //y += fonts->lineSize( tmp->fontpos );
+        //y += fonts->size( tmp->fontpos );
         fprintf( f, "</tspan>" );
         fprintf( f, "<tspan sodipodi:role=\"line\" dx=\"0\" dy=\"0\"\n  >" );
 
@@ -1046,7 +1123,7 @@ void HtmlPage::dump(FILE *f, int pageNum, const std::vector<std::string>& backgr
     } else if (xml) {
       dumpAsXML(f, pageNum);
     } else {
-      dumpComplex(f, pageNum);
+      dumpComplex(f, pageNum, backgroundImages);
     }
   }
   else
@@ -1511,6 +1588,15 @@ void HtmlOutputDev::drawChar(GfxState *state, double x, double y,
     return;
   }
   pages->addChar(state, x, y, dx, dy, originX, originY, u, uLen);
+}
+
+void HtmlOutputDev::stroke(GfxState *state) {
+  char style[] = "fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.5;stroke-dasharray:none;stroke-opacity:1";
+  char path_data[] = "";
+  pages->glPaths->push_back(new HtmlPath(style, path_data));
+  long unsigned int i = pages->glPaths->size();
+  HtmlPath *t = (*pages->glPaths)[i -1];
+  pages->doPath(state, t);
 }
 
 void HtmlOutputDev::drawJpegImage(GfxState *state, Stream *str)
