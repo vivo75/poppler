@@ -42,6 +42,7 @@
 #include "UnicodeMap.h"
 #include "GfxFont.h"
 #include <stdio.h>
+#include <cmath>
 
 namespace
 {
@@ -72,7 +73,9 @@ void removeStyleSuffix(std::string& familyName) {
 
 #define xoutRound(x) ((int)(x + 0.5))
 extern bool xml;
+extern bool svg;
 extern bool fontFullName;
+extern double fontsizemul;
 
 HtmlFontColor::HtmlFontColor(GfxRGB rgb){
   r=static_cast<int>(rgb.r/65535.0*255.0);
@@ -281,9 +284,10 @@ GooString* HtmlFontAccu::CSStyle(int i, int j){
    std::vector<HtmlFont>::iterator g=accu->begin();
    g+=i;
    HtmlFont font=*g;
-   GooString *Size=GooString::fromInt(font.getSize());
+   GooString *Size=GooString::fromInt( std::round(font.getSize() * fontsizemul));
    GooString *colorStr=font.getColor().toString();
-   GooString *fontName=(fontFullName ? font.getFullName() : font.getFontName());
+   GooString *fontName=font.getFontName();
+   GooString *fontFullName2=font.getFullName();
    GooString *lSize;
    
    if(!xml){
@@ -294,13 +298,13 @@ GooString* HtmlFontAccu::CSStyle(int i, int j){
      tmp->append(Size);
      if( font.getLineSize() != -1 && font.getLineSize() != 0 )
      {
-	 lSize = GooString::fromInt(font.getLineSize());
-	 tmp->append("px;line-height:");
-	 tmp->append(lSize);
-	 delete lSize;
+        lSize = GooString::fromInt(std::round(font.getLineSize() * fontsizemul));
+        tmp->append("px;line-height:");
+        tmp->append(lSize);
+        delete lSize;
      }
      tmp->append("px;font-family:");
-     tmp->append(fontName); //font.getFontName());
+     tmp->append(fontFullName ? fontFullName2 : fontName);
      tmp->append(";color:");
      tmp->append(colorStr);
      // if there is rotation or skew, include the matrix
@@ -328,7 +332,7 @@ GooString* HtmlFontAccu::CSStyle(int i, int j){
      }
      tmp->append(";}");
    }
-   if (xml) {
+   if (xml && !svg) {
      tmp->append("<fontspec id=\"");
      tmp->append(iStr);
      tmp->append("\" size=\"");
@@ -338,9 +342,39 @@ GooString* HtmlFontAccu::CSStyle(int i, int j){
      tmp->append("\" color=\"");
      tmp->append(colorStr);
      tmp->append("\"/>");
+   } if (svg) {
+     tmp->append("text.id");
+     tmp->append(iStr);
+     tmp->append(" { ");
+     tmp->append("font-size: ");
+     tmp->append(Size);
+     tmp->append("pt");
+
+     tmp->append("; fill: ");
+     tmp->append(colorStr);
+     tmp->append("; stroke: ");
+     tmp->append(colorStr);
+     tmp->append("; stroke-width: 0");
+     if (font.isItalic()) {
+       tmp->append("; font-style: \"italic\"");
+     } else {
+       tmp->append("; font-style: \"normal\"");
+     }
+     if (font.isBold()) {
+       tmp->append("; font-weight: \"bold\"");
+     } else {
+       tmp->append("; font-weight: \"normal\"");
+     }
+     tmp->append("; font-family: \"");
+     tmp->append(fontFullName2);
+     tmp->append("\", \"");
+     tmp->append(fontName);
+     tmp->append("\", \"Courier\"");
+     tmp->append(" }");
    }
 
    delete fontName;
+   delete fontFullName2;
    delete colorStr;
    delete jStr;
    delete iStr;
