@@ -897,6 +897,7 @@ void HtmlPage::dumpAsSVG(FILE* f,int page){
   fprintf( f, "  >\n");
 
   dumpPathsAsSVG( f );
+  glPaths->clear();
 
   GooString *str, *str1, *style = nullptr;
   const char *pch, *oldpch, *pbuf;
