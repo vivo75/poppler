@@ -331,6 +331,9 @@ public:
   //----- path painting
   virtual void stroke( GfxState * state ) override;
 
+  //----- path painting
+  virtual void stroke( GfxState * state ) override;
+
   //new feature    
   virtual int DevType() {return 1234;}
 
