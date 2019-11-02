@@ -232,7 +232,7 @@ int main(int argc, char *argv[]) {
   //errorInit();
 
   // read config file
-  globalParams = new GlobalParams();
+  globalParams = std::make_unique<GlobalParams>();
 
   if (errQuiet) {
     globalParams->setErrQuiet(errQuiet);
@@ -470,7 +470,6 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "Your pdftohtml was built without splash backend support. It is needed for the option you want to use.\n");
     delete htmlOut;
     delete htmlFileName;
-    delete globalParams;
     delete fileName;
     delete doc;
     return -1;
@@ -492,7 +491,6 @@ int main(int argc, char *argv[]) {
  error:
   if(doc) delete doc;
   delete fileName;
-  if(globalParams) delete globalParams;
 
   if(htmlFileName) delete htmlFileName;
 
