@@ -299,30 +299,24 @@ GooString* HtmlFontAccu::getCSStyle(int i, GooString* content){
 // get CSS font definition for font #i 
 GooString* HtmlFontAccu::CSStyle(int i, int j){
    GooString *tmp=new GooString();
-   GooString *iStr=new GooString(std::to_string(i));
-   GooString *jStr=new GooString(std::to_string(j));
 
    std::vector<HtmlFont>::iterator g=accu->begin();
    g+=i;
    HtmlFont font=*g;
-   GooString *Size=new GooString(std::to_string(font.getSize() * fontsizemul));
    GooString *colorStr=font.getColor().toString();
    GooString *fontName=font.getFontName();
    GooString *fontFullName2=font.getFullName();
-   GooString *lSize;
    
    if(!xml){
      tmp->append(".ft");
-     tmp->append(jStr);
-     tmp->append(iStr);
+     tmp->append(std::to_string(j));
+     tmp->append(std::to_string(i));
      tmp->append("{font-size:");
-     tmp->append(Size);
+     tmp->append(std::to_string(font.getSize()));
      if( font.getLineSize() != -1 && font.getLineSize() != 0 )
      {
-        lSize = new GooString(std::to_string(font.getLineSize() * fontsizemul));
         tmp->append("px;line-height:");
-        tmp->append(lSize);
-        delete lSize;
+        tmp->append(std::to_string(font.getLineSize() * fontsizemul));
      }
      tmp->append("px;font-family:");
      tmp->append(fontFullName ? fontFullName2 : fontName);
@@ -355,9 +349,9 @@ GooString* HtmlFontAccu::CSStyle(int i, int j){
    }
    if (xml && !svg) {
      tmp->append("<fontspec id=\"");
-     tmp->append(iStr);
+     tmp->append(std::to_string(i));
      tmp->append("\" size=\"");
-     tmp->append(Size);
+     tmp->append(std::to_string(font.getSize()));
      tmp->append("\" family=\"");
      tmp->append(fontFullName ? fontFullName2 : fontName);
      tmp->append("\" color=\"");
@@ -398,9 +392,6 @@ GooString* HtmlFontAccu::CSStyle(int i, int j){
    delete fontName;
    delete fontFullName2;
    delete colorStr;
-   delete jStr;
-   delete iStr;
-   delete Size;
    return tmp;
 }
 
