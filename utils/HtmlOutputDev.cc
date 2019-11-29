@@ -1236,7 +1236,7 @@ HtmlMetaVar::~HtmlMetaVar()
    delete content;
 } 
     
-GooString* HtmlMetaVar::toString()	
+GooString* HtmlMetaVar::toString()
 {
     GooString *result = new GooString("<meta name=\"");
     result->append(name);
@@ -1963,10 +1963,9 @@ void HtmlOutputDev::dumpMetaVars(FILE *file)
 {
   GooString *var;
 
-  for(std::size_t i = 0; i < glMetaVars->size(); i++)
+  for(HtmlMetaVar *t : *glMetaVars)
   {
-     HtmlMetaVar *t = (*glMetaVars)[i];
-     var = t->toString(); 
+     var = t->toString();
      fprintf(file, "%s\n", var->c_str());
      delete var;
   }
@@ -2051,9 +2050,8 @@ bool HtmlOutputDev::newHtmlOutlineLevel(FILE *output, const std::vector<OutlineI
 	}
 	fputs("<ul>\n",output);
 
-	for (std::size_t i = 0; i < outlines->size(); i++)
+	for (OutlineItem *item : *outlines)
 	{
-		OutlineItem *item = (*outlines)[i];
 		GooString *titleStr = HtmlFont::HtmlFilter(item->getTitle(),
 							   item->getTitleLength());
 
@@ -2110,9 +2108,8 @@ void HtmlOutputDev::newXmlOutlineLevel(FILE *output, const std::vector<OutlineIt
 {
     fputs("<outline>\n", output);
 
-    for (std::size_t i = 0; i < outlines->size(); i++)
+    for (OutlineItem *item : *outlines)
     {
-        OutlineItem *item     = (*outlines)[i];
         GooString   *titleStr = HtmlFont::HtmlFilter(item->getTitle(),
                                                      item->getTitleLength());
         const int itemPage = getOutlinePageNum(item);
