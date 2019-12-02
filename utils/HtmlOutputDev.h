@@ -262,7 +262,7 @@ public:
 	  bool outline = 0);
 
   // Destructor.
-  virtual ~HtmlOutputDev();
+  ~HtmlOutputDev() override;
 
   // Check if file was successfully created.
   virtual bool isOk() { return ok; }

@@ -183,7 +183,7 @@ public:
         bool reverseVideoA, SplashColorPtr paperColorA,
         bool bitmapTopDownA = true) : SplashOutputDev(colorModeA,
             bitmapRowPadA, reverseVideoA, paperColorA, bitmapTopDownA) { }
-  virtual ~SplashOutputDevNoText() { }
+  ~SplashOutputDevNoText() override { }
   
   void drawChar(GfxState *state, double x, double y,
       double dx, double dy,
