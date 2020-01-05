@@ -96,7 +96,7 @@ public:
 
 class HtmlFontAccu{
 private:
-  std::vector<HtmlFont> *accu;
+  std::vector<HtmlFont> accu;
   
 public:
   HtmlFontAccu();
@@ -105,14 +105,14 @@ public:
   HtmlFontAccu& operator=(const HtmlFontAccu &) = delete;
   int AddFont(const HtmlFont& font);
   HtmlFont *Get(int i){
-    return &(*accu)[i];
+    return &accu[i];
   }
   GooString* getCSStyle (int i, GooString* content);
   GooString* CSStyle(int i, int j = 0);
   double lineSize(int i);
+  int size() const {return accu.size();}
   GBool isBold(int i);
   GBool isItalic(int i);
-  int size() const {return accu->size();}
   
 };  
 #endif
