@@ -120,7 +120,7 @@ HtmlFont::HtmlFont(GfxFont *font, int _size, GfxRGB rgb){
 
   lineSize = -1;
 
-  size=(_size-1);
+  size=_size;
   italic = false;
   bold = false;
   rotOrSkewed = false;
