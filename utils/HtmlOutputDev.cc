@@ -1853,9 +1853,9 @@ GooString* HtmlOutputDev::getLinkDest(AnnotLink *link){
 	  GooString* file = new GooString(gbasename(Docname->c_str()));
 	  int destPage=1;
 	  LinkGoTo *ha=(LinkGoTo *)link->getAction();
-	  LinkDest *dest=nullptr;
+	  std::unique_ptr<LinkDest> dest;
 	  if (ha->getDest()!=nullptr)
-	      dest=ha->getDest()->copy();
+	      dest=std::unique_ptr<LinkDest>(ha->getDest()->copy());
 	  else if (ha->getNamedDest()!=nullptr)
 	      dest=catalog->findDest(ha->getNamedDest());
 	      
@@ -1867,8 +1867,6 @@ GooString* HtmlOutputDev::getLinkDest(AnnotLink *link){
 	      else {
 		  destPage=dest->getPageNum();
 	      }
-
-	      delete dest;
 
 	      /* 		complex 	simple
 	       	frames		file-4.html	files.html#4
@@ -2138,7 +2136,7 @@ int HtmlOutputDev::getOutlinePageNum(OutlineItem *item)
 {
     const LinkAction *action   = item->getAction();
     const LinkGoTo   *link     = nullptr;
-    LinkDest   *linkdest = nullptr;
+    std::unique_ptr<LinkDest> linkdest;
     int         pagenum  = -1;
 
     if (!action || action->getKind() != actionGoTo)
@@ -2150,7 +2148,7 @@ int HtmlOutputDev::getOutlinePageNum(OutlineItem *item)
         return pagenum;
 
     if (link->getDest())
-        linkdest = link->getDest()->copy();
+        linkdest = std::unique_ptr<LinkDest>(link->getDest()->copy());
     else if (link->getNamedDest())
         linkdest = catalog->findDest(link->getNamedDest());
 
@@ -2164,6 +2162,5 @@ int HtmlOutputDev::getOutlinePageNum(OutlineItem *item)
         pagenum = linkdest->getPageNum();
     }
 
-    delete linkdest;
     return pagenum;
 }
