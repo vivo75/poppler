@@ -2143,7 +2143,7 @@ int HtmlOutputDev::getOutlinePageNum(OutlineItem *item)
     if (!action || action->getKind() != actionGoTo)
         return pagenum;
 
-    link = dynamic_cast<const LinkGoTo*>(action);
+    link = static_cast<const LinkGoTo*>(action);
 
     if (!link || !link->isOk())
         return pagenum;
