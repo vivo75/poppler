@@ -2032,7 +2032,6 @@ bool HtmlOutputDev::newHtmlOutlineLevel(FILE *output, const std::vector<OutlineI
             fputs("\n", output);
             newHtmlOutlineLevel(output, item->getKids(), level + 1);
         }
-        item->close();
         fputs("</li>\n", output);
     }
     fputs("</ul>\n", output);
@@ -2058,7 +2057,6 @@ void HtmlOutputDev::newXmlOutlineLevel(FILE *output, const std::vector<OutlineIt
         if (item->hasKids() && item->getKids()) {
             newXmlOutlineLevel(output, item->getKids());
         }
-        item->close();
     }
 
     fputs("</outline>\n", output);
