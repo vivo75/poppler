@@ -475,7 +475,6 @@ static GooString *getInfoString(Dict *infoDict, const char *key)
 static GooString *getInfoDate(Dict *infoDict, const char *key)
 {
     Object obj;
-    const char *s;
     int year, mon, day, hour, min, sec, tz_hour, tz_minute;
     char tz;
     struct tm tmStruct;
@@ -484,7 +483,7 @@ static GooString *getInfoDate(Dict *infoDict, const char *key)
 
     obj = infoDict->lookup(key);
     if (obj.isString()) {
-        s = obj.getString()->c_str();
+        const GooString *s = obj.getString();
         // TODO do something with the timezone info
         if (parseDateString(s, &year, &mon, &day, &hour, &min, &sec, &tz, &tz_hour, &tz_minute)) {
             tmStruct.tm_year = year - 1900;
