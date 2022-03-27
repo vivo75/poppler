@@ -145,10 +145,10 @@ HtmlFont::HtmlFont(const GfxFont &font, int _size, GfxRGB rgb, double opacity)
         italic = true;
     }
 
-    if (const GooString *fontname = font.getName()) {
-        FontName = new GooString(fontname);
+    if (const std::optional<std::string> &fontname = font.getName()) {
+        FontName = new GooString(*fontname);
 
-        GooString fontnameLower(fontname);
+        GooString fontnameLower(*fontname);
         fontnameLower.lowerCase();
 
         if (!bold && strstr(fontnameLower.c_str(), "bold")) {
