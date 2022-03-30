@@ -373,7 +373,6 @@ int main(int argc, char *argv[])
   }
   
     if ((complexMode || singleHtml) && !xml && !ignore) {
-        GooString *imgFileName = nullptr;
         // White paper color
         SplashColor color;
         color[0] = color[1] = color[2] = 255;
@@ -388,11 +387,10 @@ int main(int argc, char *argv[])
             doc->displayPage(splashOut, pg, resolution * scale, resolution * scale, 0, true, false, false);
             SplashBitmap *bitmap = splashOut->getBitmap();
 
-            imgFileName = GooString::format("{0:s}{1:03d}.{2:s}", htmlFileName->c_str(), pg, extension);
+            const std::unique_ptr<GooString> imgFileName = GooString::format("{0:s}{1:03d}.{2:s}", htmlFileName->c_str(), pg, extension);
             auto f1 = dataUrls ? imf.open("wb") : fopen(imgFileName->c_str(), "wb");
             if (!f1) {
                 fprintf(stderr, "Could not open %s\n", imgFileName->c_str());
-                delete imgFileName;
                 continue;
             }
             bitmap->writeImgFile(format, f1, resolution * scale, resolution * scale);
@@ -402,7 +400,6 @@ int main(int argc, char *argv[])
             } else {
                 htmlOut->addBackgroundImage(gbasename(imgFileName->c_str()));
             }
-            delete imgFileName;
         }
 
         delete splashOut;
